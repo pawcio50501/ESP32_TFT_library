@@ -1,17 +1,5 @@
 menu "TFT Display DEMO Configuration"
 
-config SPIFFS_BASE_ADDR
-    hex "SPIFFS Base address"
-    range 100000 1FFE000
-    default 180000
-    help
-	Starting address of the SPIFFS area in ESP32 Flash
-
-config SPIFFS_SIZE
-    int "SPIFFS Size in bytes"
-    range 262144 2097152
-    default 1048576
-
 config SPIFFS_LOG_BLOCK_SIZE
     int "SPIFFS Logical block size"
     range 4098 65536
@@ -30,6 +18,7 @@ config EXAMPLE_DISPLAY_TYPE
     default 1 if EXAMPLE_DISPLAY_TYPE1
     default 2 if EXAMPLE_DISPLAY_TYPE2
     default 3 if EXAMPLE_DISPLAY_TYPE3
+    default 4 if EXAMPLE_DISPLAY_TYPE4
 
     choice
         prompt "Select predefined display configuration"
@@ -45,6 +34,8 @@ config EXAMPLE_DISPLAY_TYPE
             bool "Adafruit TFT Feather display"
         config EXAMPLE_DISPLAY_TYPE3
             bool "M5Stack TFT display"
+        config EXAMPLE_DISPLAY_TYPE4
+            bool "my TFT"
     endchoice
 
 config EXAMPLE_USE_WIFI

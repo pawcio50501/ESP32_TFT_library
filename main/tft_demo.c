@@ -21,7 +21,10 @@
 #include "esp_heap_caps.h"
 #include "tftspi.h"
 #include "tft.h"
-#include "spiffs_vfs.h"
+//#include "spiffs_vfs.h"
+#include "esp_spiffs.h"
+#include "esp_err.h"
+#include "esp_log.h"
 
 #ifdef CONFIG_EXAMPLE_USE_WIFI
 
@@ -58,6 +61,46 @@ static const char *file_fonts[3] = {"/spiffs/fonts/DotMatrix_M.fon", "/spiffs/fo
 #define GDEMO_TIME 1000
 #define GDEMO_INFO_TIME 5000
 
+
+///////////////////////////////////////////////////////////////////
+#define SPIFFS_BASE_PATH "/spiffs"
+bool spiffs_is_mounted = false;
+#define TAG "demo"
+
+void vfs_spiffs_register() {
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = "/spiffs",
+      .partition_label = NULL,
+      .max_files = 5,
+      .format_if_mount_failed = false
+    };
+    
+    // Use settings defined above to initialize and mount SPIFFS filesystem.
+    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        }
+        return;
+    }
+    
+    spiffs_is_mounted = true;
+    
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(conf.partition_label, &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+    }    
+}
+
 //==================================================================================
 #ifdef CONFIG_EXAMPLE_USE_WIFI
 
@@ -70,6 +113,7 @@ static EventGroupHandle_t wifi_event_group;
    but we only care about one event - are we connected
    to the AP with an IP? */
 const int CONNECTED_BIT = 0x00000001;
+
 
 //------------------------------------------------------------
 static esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -922,7 +966,7 @@ static void poly_demo()
 			TFT_drawPolygon(x, y, sides[i], r, TFT_BLACK, TFT_BLACK, oldrot, 1);
 			TFT_drawPolygon(x, y, sides[i], r, color[i], color[i], rot, 1);
 			r -= 16;
-            if (r <= 0) break;
+            if (r <= 0) {break;}
 			n += 2;
 		}
 		Wait(100);
@@ -944,7 +988,7 @@ static void poly_demo()
 		for (i=5; i>=0; i--) {
 			TFT_drawPolygon(x, y, sides[i], r, color[i], fill[i], rot, 2);
 			r -= 16;
-            if (r <= 0) break;
+            if (r <= 0) {break;}
 			n += 2;
 		}
 		Wait(500);
@@ -1013,7 +1057,7 @@ void tft_demo() {
 	font_forceFixed = 0;
 	TFT_resetclipwin();
 
-	image_debug = 0;
+	image_debug = 1;
 
     char dtype[16];
     
@@ -1446,6 +1490,7 @@ void app_main()
 	TFT_print("Initializing SPIFFS...", CENTER, CENTER);
     // ==== Initialize the file system ====
     printf("\r\n\n");
+
 	vfs_spiffs_register();
     if (!spiffs_is_mounted) {
     	_fg = TFT_RED;
